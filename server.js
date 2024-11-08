@@ -7,7 +7,8 @@ const { setupWSConnection } = require('y-websocket/bin/utils')
 
 const app = express()
 const server = http.createServer(app)
-const wss = new WebSocket.Server({ noServer: true })
+const wss = new WebSocket.Server({server,
+    path: '/my-shared-doc'})
 const allowedOrigins = ['https://idyllic-kitsune-c7f4b8.netlify.app/'];
 // Enable CORS
 
