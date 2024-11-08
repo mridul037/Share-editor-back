@@ -8,7 +8,7 @@ const { setupWSConnection } = require('y-websocket/bin/utils')
 const app = express()
 const server = http.createServer(app)
 const wss = new WebSocket.Server({ noServer: true })
-const allowedOrigins = ['http://localhost:5173'];
+const allowedOrigins = ['https://idyllic-kitsune-c7f4b8.netlify.app/'];
 // Enable CORS
 
 app.use(cors({
