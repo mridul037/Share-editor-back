@@ -7,7 +7,7 @@ const { setupWSConnection } = require('y-websocket/bin/utils')
 
 const app = express()
 const server = http.createServer(app)
-const wss = new WebSocket.Server({ server: server })
+const wss = new WebSocket.Server({ noServer: true })
 const allowedOrigins = ['http://localhost:5173'];
 // Enable CORS
 
@@ -20,18 +20,48 @@ app.use(cors({
 
   
 
-server.on('upgrade', (request, socket, head) => {
-    console.log('WebSocket connection upgrade')
-    wss.handleUpgrade(request, socket, head, ws => {
-      wss.emit('connection', ws, request)
-    })
-  })
+  server.on('upgrade', (request, socket, head) => {
+    const origin = request.headers.origin;
+    
+    // Verify origin
+    if (!allowedOrigins.includes(origin) && process.env.NODE_ENV !== 'development') {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+  
+    // Handle upgrade
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      console.log('WebSocket connection established from:', origin);
+      wss.emit('connection', ws, request);
+    });
+  });
 
 // Handle WebSocket connections
 wss.on('connection', (ws, req) => {
-    console.log('WebSocket connection established')
-  setupWSConnection(ws, req)
-})
+    try {
+      setupWSConnection(ws, req);
+      
+      // Send connection confirmation
+      ws.send(JSON.stringify({ 
+        type: 'connection', 
+        status: 'connected',
+        timestamp: new Date().toISOString()
+      }));
+  
+    } catch (error) {
+      console.error('Error in connection handler:', error);
+      ws.close();
+    }
+    ws.on('close', () => {
+        console.log('Client disconnected');
+      });
+    
+      // Handle errors
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+      });
+    });
 
 // Basic health check endpoint
 app.get('/health', (req, res) => {
@@ -46,6 +76,9 @@ server.listen(PORT, () => {
 
 // Handle server shutdown
 process.on('SIGTERM', () => {
+    wss.clients.forEach(client => {
+        client.close();
+      });
   server.close(() => {
     console.log('Server closed')
     process.exit(0)
