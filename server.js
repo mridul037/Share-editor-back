@@ -7,9 +7,13 @@ const { setupWSConnection } = require('y-websocket/bin/utils')
 
 const app = express()
 const server = http.createServer(app)
-const wss = new WebSocket.Server({server,
-    path: '/my-shared-doc'})
+const wss = new WebSocket.Server({
+  server,
+  path: '/my-shared-doc'
+});
+
 const allowedOrigins = ['https://idyllic-kitsune-c7f4b8.netlify.app/'];
+
 // Enable CORS
 
 app.use(cors({
@@ -19,24 +23,8 @@ app.use(cors({
     credentials: true
   }));
 
-  
 
-  server.on('upgrade', (request, socket, head) => {
-    const origin = request.headers.origin;
-    
-    // Verify origin
-    if (!allowedOrigins.includes(origin) && process.env.NODE_ENV !== 'development') {
-      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-  
-    // Handle upgrade
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      console.log('WebSocket connection established from:', origin);
-      wss.emit('connection', ws, request);
-    });
-  });
+ 
 
 // Handle WebSocket connections
 wss.on('connection', (ws, req) => {
